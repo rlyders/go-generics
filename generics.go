@@ -1,14 +1,18 @@
 package main
 
-import "fmt"
+import (
+	"fmt"
+
+	"gorm.io/gorm"
+)
 
 // based on: https://stackoverflow.com/a/33642734/5572674
 type BaseStruct struct {
-	Id int `orm:"pk"`
+	ID uint
 }
 
-func (m *BaseStruct) setId(id int) {
-	m.Id = id
+func (m *BaseStruct) setId(id uint) {
+	m.ID = id
 }
 
 type ExtendedStruct1 struct {
@@ -27,18 +31,20 @@ type ExtendedStruct3 struct {
 }
 
 type ISetId[T any] interface {
-	setId(id int)
+	setId(id uint)
 	//constraining a type to a pointer of a given type (from: https://stackoverflow.com/a/70394905/5572674)
 	*T
 }
 
-// mock similar to orm.Delete()
-func Delete(md interface{}, cols ...string) string {
-	return fmt.Sprintf("Delete: %+v %T", md, md)
+// wrapper for gorm.Delete() to check type being deleted
+func Delete(g *gorm.DB, md interface{}, cols ...string) string {
+	ck := fmt.Sprintf("Delete: %+v %T", md, md)
+	g.Delete(md)
+	return ck
 }
 
-func DeleteGenericById[T ISetId[U], U any](id int) string {
+func DeleteGenericById[T ISetId[U], U any](g *gorm.DB, id uint) string {
 	var myU U
 	T(&myU).setId(id)
-	return Delete(T(&myU))
+	return Delete(g, T(&myU))
 }
